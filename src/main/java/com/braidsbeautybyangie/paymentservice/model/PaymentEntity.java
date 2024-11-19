@@ -31,6 +31,8 @@ public class PaymentEntity {
     @Column(name = "user_id", nullable = true)
     private Long userId;
 
+    @Column(name="shop_order_id", nullable = false)
+    private Long shopOrderId;
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_entity", nullable = false)
     private PaymentType paymentType;

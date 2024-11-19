@@ -24,4 +24,5 @@ public class PaymentDTO {
     private Long userId;
     @Enumerated(EnumType.STRING)
     private PaymentType paymentType;
+    private Long shopOrderId;
 }

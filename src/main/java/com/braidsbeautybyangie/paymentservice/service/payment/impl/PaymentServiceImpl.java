@@ -1,7 +1,6 @@
 package com.braidsbeautybyangie.paymentservice.service.payment.impl;
 
 
-import com.braidsbeautybyangie.coreservice.aggregates.Constants;
 import com.braidsbeautybyangie.paymentservice.model.PaymentEntity;
 import com.braidsbeautybyangie.paymentservice.model.dto.PaymentDTO;
 import com.braidsbeautybyangie.paymentservice.model.mapper.PaymentMapper;
@@ -9,6 +8,7 @@ import com.braidsbeautybyangie.paymentservice.model.response.ResponseListPageabl
 import com.braidsbeautybyangie.paymentservice.repository.PaymentRepository;
 import com.braidsbeautybyangie.paymentservice.service.creditCard.CreditCardProcessorRemoteService;
 import com.braidsbeautybyangie.paymentservice.service.payment.PaymentService;
+import com.braidsbeautybyangie.sagapatternspringboot.aggregates.aggregates.Constants;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +39,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .paymentExpirationDate(paymentDTO.getPaymentExpirationDate())
                 .userId(paymentDTO.getUserId())
                 .paymentProvider(paymentDTO.getPaymentProvider())
+                .shopOrderId(paymentDTO.getShopOrderId())
                 .build();
         PaymentEntity paymentSaved = paymentRepository.save(paymentEntity);
         LOGGER.info("Payment processed: {}", paymentSaved);

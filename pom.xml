@@ -73,7 +73,7 @@
         <!--CORE PROJECT -->
         <dependency>
             <groupId>com.braidsbeautyByAngie</groupId>
-            <artifactId>core-service</artifactId>
+            <artifactId>saga-pattern-spring-boot</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
         <!-- Mappers-->
@@ -97,6 +97,11 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+        <!-- Kafka -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
         </dependency>
     </dependencies>
     <dependencyManagement>
