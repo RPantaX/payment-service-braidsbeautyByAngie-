@@ -33,56 +33,78 @@ public class PaymentsCommandsHandler {
 
     @KafkaHandler
     public void handleCommand(@Payload ProcessPaymentCommand command) {
-        boolean isService = false;
-        boolean isProduct = false;
-        BigDecimal totalPrice = BigDecimal.ZERO;
         try {
-            if (command.getProductList().isEmpty()) {
-                // Calcular el total de servicios
-                isService = true;
-                BigDecimal totalPriceServices = command.getServiceList()
-                        .stream()
-                        .map(ServiceCore::getPrice)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-                totalPrice = totalPrice.add(totalPriceServices);
+            BigDecimal totalPrice = calculateTotalPrice(command);
 
-            } else {
-                // Calcular el total de productos
-                isProduct= true;
-                BigDecimal totalPriceProducts = command.getProductList()
-                        .stream()
-                        .map(product -> BigDecimal.valueOf(product.getPrice())
-                                .multiply(BigDecimal.valueOf(product.getQuantity())))
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-                totalPrice = totalPrice.add(totalPriceProducts);
-            }
-            PaymentDTO paymentDTO = PaymentDTO.builder()
-                    .paymentType(PaymentType.CREDIT_CARD)
-                    .paymentProvider(command.getPaymentProvider())
-                    .userId(command.getUserId())
-                    .paymentAccountNumber(command.getPaymentAccountNumber())
-                    .paymentIsDefault(command.isPaymentIsDefault())
-                    .paymentExpirationDate(command.getPaymentExpirationDate())
-                    .paymentTotalPrice(totalPrice)
-                    .shopOrderId(command.getShopOrderId())
-                    .build();
+            PaymentDTO paymentDTO = buildPaymentDTO(command, totalPrice);
+
             PaymentDTO paymentDTOSaved = paymentService.processPayment(paymentDTO);
-            PaymentProcessedEvent paymentProcessedEvent = PaymentProcessedEvent.builder()
-                    .paymentId(paymentDTOSaved.getPaymentId())
-                    .shopOrderId(command.getShopOrderId())
-                    .isProduct(isProduct)
-                    .isService(isService)
-                    .build();
-            kafkaTemplate.send(paymentEventsTopicName, paymentProcessedEvent);
+
+            publishPaymentProcessedEvent(command, paymentDTOSaved);
 
         } catch (CreditCardProcessorUnavailableException e) {
             logger.error("Error in PaymentsCommandsHandler.handleCommand: {}", e.getMessage());
-            PaymentFailedEvent paymentFailedEvent = PaymentFailedEvent.builder()
-                    .shopOrderId(command.getShopOrderId())
-                    .productList(command.getProductList())
-                    .reservationId(command.getReservationId())
-                    .build();
-            kafkaTemplate.send(paymentEventsTopicName, paymentFailedEvent);
+            publishPaymentFailedEvent(command);
         }
     }
+
+    private BigDecimal calculateTotalPrice(ProcessPaymentCommand command) {
+        BigDecimal totalPriceProducts = calculateProductsTotal(command);
+        BigDecimal totalPriceServices = calculateServicesTotal(command);
+        return totalPriceProducts.add(totalPriceServices);
+    }
+
+    private BigDecimal calculateProductsTotal(ProcessPaymentCommand command) {
+        if (command.getProductList().isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        return command.getProductList().stream()
+                .map(product -> BigDecimal.valueOf(product.getPrice())
+                        .multiply(BigDecimal.valueOf(product.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal calculateServicesTotal(ProcessPaymentCommand command) {
+        if (command.getServiceList().isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        return command.getServiceList().stream()
+                .map(ServiceCore::getPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private PaymentDTO buildPaymentDTO(ProcessPaymentCommand command, BigDecimal totalPrice) {
+        return PaymentDTO.builder()
+                .paymentType(PaymentType.CREDIT_CARD)
+                .paymentProvider(command.getPaymentProvider())
+                .userId(command.getUserId())
+                .paymentAccountNumber(command.getPaymentAccountNumber())
+                .paymentIsDefault(command.isPaymentIsDefault())
+                .paymentExpirationDate(command.getPaymentExpirationDate())
+                .paymentTotalPrice(totalPrice)
+                .shopOrderId(command.getShopOrderId())
+                .build();
+    }
+
+    private void publishPaymentProcessedEvent(ProcessPaymentCommand command, PaymentDTO paymentDTOSaved) {
+        PaymentProcessedEvent paymentProcessedEvent = PaymentProcessedEvent.builder()
+                .paymentId(paymentDTOSaved.getPaymentId())
+                .shopOrderId(command.getShopOrderId())
+                .isProduct(!command.getProductList().isEmpty())
+                .isService(!command.getServiceList().isEmpty())
+                .build();
+
+        kafkaTemplate.send(paymentEventsTopicName, paymentProcessedEvent);
+    }
+
+    private void publishPaymentFailedEvent(ProcessPaymentCommand command) {
+        PaymentFailedEvent paymentFailedEvent = PaymentFailedEvent.builder()
+                .shopOrderId(command.getShopOrderId())
+                .productList(command.getProductList())
+                .reservationId(command.getReservationId())
+                .build();
+
+        kafkaTemplate.send(paymentEventsTopicName, paymentFailedEvent);
+    }
+
 }
