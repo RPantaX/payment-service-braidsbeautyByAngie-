@@ -5,7 +5,6 @@ import com.braidsbeautybyangie.paymentservice.model.dto.PaymentDTO;
 import com.braidsbeautybyangie.paymentservice.service.payment.PaymentService;
 import com.braidsbeautybyangie.sagapatternspringboot.aggregates.AppExceptions.CreditCardProcessorUnavailableException;
 import com.braidsbeautybyangie.sagapatternspringboot.aggregates.aggregates.commands.ProcessPaymentCommand;
-import com.braidsbeautybyangie.sagapatternspringboot.aggregates.aggregates.dto.ServiceCore;
 import com.braidsbeautybyangie.sagapatternspringboot.aggregates.aggregates.events.PaymentFailedEvent;
 import com.braidsbeautybyangie.sagapatternspringboot.aggregates.aggregates.events.PaymentProcessedEvent;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +39,7 @@ public class PaymentsCommandsHandler {
 
             PaymentDTO paymentDTOSaved = paymentService.processPayment(paymentDTO);
 
-            publishPaymentProcessedEvent(command, paymentDTOSaved);
+            publishPaymentProcessedEvent(command, paymentDTOSaved, totalPrice);
 
         } catch (CreditCardProcessorUnavailableException e) {
             logger.error("Error in PaymentsCommandsHandler.handleCommand: {}", e.getMessage());
@@ -50,7 +49,7 @@ public class PaymentsCommandsHandler {
 
     private BigDecimal calculateTotalPrice(ProcessPaymentCommand command) {
         BigDecimal totalPriceProducts = calculateProductsTotal(command);
-        BigDecimal totalPriceServices = calculateServicesTotal(command);
+        BigDecimal totalPriceServices = command.getReservationCore().getTotalPrice();
         return totalPriceProducts.add(totalPriceServices);
     }
 
@@ -59,17 +58,8 @@ public class PaymentsCommandsHandler {
             return BigDecimal.ZERO;
         }
         return command.getProductList().stream()
-                .map(product -> BigDecimal.valueOf(product.getPrice())
+                .map(product -> product.getPrice()
                         .multiply(BigDecimal.valueOf(product.getQuantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    private BigDecimal calculateServicesTotal(ProcessPaymentCommand command) {
-        if (command.getServiceList().isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-        return command.getServiceList().stream()
-                .map(ServiceCore::getPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
@@ -86,12 +76,15 @@ public class PaymentsCommandsHandler {
                 .build();
     }
 
-    private void publishPaymentProcessedEvent(ProcessPaymentCommand command, PaymentDTO paymentDTOSaved) {
+    private void publishPaymentProcessedEvent(ProcessPaymentCommand command, PaymentDTO paymentDTOSaved, BigDecimal totalPrice) {
+        boolean isService = command.getReservationCore().getReservationId() != null;
+
         PaymentProcessedEvent paymentProcessedEvent = PaymentProcessedEvent.builder()
                 .paymentId(paymentDTOSaved.getPaymentId())
                 .shopOrderId(command.getShopOrderId())
+                .paymentTotalPrice(totalPrice)
                 .isProduct(!command.getProductList().isEmpty())
-                .isService(!command.getServiceList().isEmpty())
+                .isService(isService)
                 .build();
 
         kafkaTemplate.send(paymentEventsTopicName, paymentProcessedEvent);
@@ -101,7 +94,7 @@ public class PaymentsCommandsHandler {
         PaymentFailedEvent paymentFailedEvent = PaymentFailedEvent.builder()
                 .shopOrderId(command.getShopOrderId())
                 .productList(command.getProductList())
-                .reservationId(command.getReservationId())
+                .reservationId(command.getReservationCore().getReservationId())
                 .build();
 
         kafkaTemplate.send(paymentEventsTopicName, paymentFailedEvent);
