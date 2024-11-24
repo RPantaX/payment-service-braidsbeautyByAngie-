@@ -1,56 +1,57 @@
-spring:
-  application:
-    name: payment-service
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-  datasource:
-    url: jdbc:postgresql://localhost:5433/db_payments?useSSL=false
-    username: fazt2
-    password: 123456
-  kafka:
-    bootstrap-servers: localhost:9092,localhost:9094,localhost:9096
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      acks: all
-      properties:
-        delivery.timeout.ms: 120000
-        linger.ms: 0
-        request.timeout.ms: 30000
-        max.in.flight.requests.per.connection: 5
-        enable.idempotence: true
-        allow.auto.create.topics: false
-    consumer:
-      group-id: payments-ms-angieBraids
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: 'com.braidsbeautybyangie.*'
-        allow.auto.create.topics: false
-    admin:
-      auto-create: false
-
-payments:
-  commands:
-    topic:
-      name: payments-commands
-  events:
-    topic:
-      name: payments-events
-
-server:
-  port: 0
-
-eureka:
-  instance:
-    instance-id: ${spring.application.name}:${random.value}
-
-springdoc:
-  api-docs:
-    enabled: true
-  swagger-ui:
-    csrf:
-      enabled: true
-    path: /swagger-ui.html
+#spring:
+#  application:
+#    name: payment-service
+#  jpa:
+#    hibernate:
+#      ddl-auto: update
+#    show-sql: true
+#  datasource:
+#    url: jdbc:postgresql://localhost:5433/db_payments?useSSL=false
+#    username: fazt2
+#    password: 123456
+#  kafka:
+#    bootstrap-servers: localhost:9092,localhost:9094,localhost:9096
+#    producer:
+#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+#      acks: all
+#      properties:
+#        delivery.timeout.ms: 120000
+#        linger.ms: 0
+#        request.timeout.ms: 30000
+#        max.in.flight.requests.per.connection: 5
+#        enable.idempotence: true
+#        allow.auto.create.topics: false
+#    consumer:
+#      group-id: payments-ms-angieBraids
+#      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+#      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+#      properties:
+#        spring.json.trusted.packages: 'com.braidsbeautybyangie.*'
+#        allow.auto.create.topics: false
+#    admin:
+#      auto-create: false
+#
+#payments:
+#  commands:
+#    topic:
+#      name: payments-commands
+#  events:
+#    topic:
+#      name: payments-events
+#
+#server:
+#  port: 0
+#
+#eureka:
+#  instance:
+#    instance-id: ${spring.application.name}:${random.value}
+#
+#springdoc:
+#  api-docs:
+#    enabled: true
+#  swagger-ui:
+#    csrf:
+#      enabled: true
+#    path: /swagger-ui.html
+#

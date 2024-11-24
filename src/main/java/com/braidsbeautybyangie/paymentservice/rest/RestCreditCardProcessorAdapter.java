@@ -8,6 +8,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 @FeignClient(name = "credit-card-processor-service")
 public interface RestCreditCardProcessorAdapter {
 
-    @PostMapping("/v1/payment-service/ccp/process")
+    @PostMapping("/v1/credit-card/ccp/process")
     void processCreditCard(@RequestBody CreditCardProcessRequest request);
 }

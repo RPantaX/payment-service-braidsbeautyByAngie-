@@ -6,4 +6,5 @@ import com.braidsbeautybyangie.paymentservice.model.response.ResponseListPageabl
 public interface PaymentService {
     PaymentDTO processPayment(PaymentDTO paymentDTO);
     ResponseListPageablePayments listAllPaymentsPageable(int pageNumber, int pageSize, String orderBy, String sortDir);
+    PaymentDTO findPaymentByShopOrderId(Long paymentId);
 }

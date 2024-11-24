@@ -63,4 +63,12 @@ public class PaymentServiceImpl implements PaymentService {
                 .end(paymentEntityPage.isLast())
                 .build();
     }
+
+    @Override
+    public PaymentDTO findPaymentByShopOrderId(Long shopOrderId) {
+        LOGGER.info("Searching payment with ID: {}", shopOrderId);
+        return paymentRepository.findByShopOrderId(shopOrderId)
+                .map(paymentMapper::paymentDTO)
+                .orElse(null);
+    }
 }
