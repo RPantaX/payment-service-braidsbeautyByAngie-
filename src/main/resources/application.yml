@@ -47,11 +47,4 @@
 #  instance:
 #    instance-id: ${spring.application.name}:${random.value}
 #
-#springdoc:
-#  api-docs:
-#    enabled: true
-#  swagger-ui:
-#    csrf:
-#      enabled: true
-#    path: /swagger-ui.html
 #
