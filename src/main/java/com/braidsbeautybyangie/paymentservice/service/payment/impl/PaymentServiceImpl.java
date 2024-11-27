@@ -8,10 +8,10 @@ import com.braidsbeautybyangie.paymentservice.model.response.ResponseListPageabl
 import com.braidsbeautybyangie.paymentservice.repository.PaymentRepository;
 import com.braidsbeautybyangie.paymentservice.service.creditCard.CreditCardProcessorRemoteService;
 import com.braidsbeautybyangie.paymentservice.service.payment.PaymentService;
+import com.braidsbeautybyangie.sagapatternspringboot.aggregates.AppExceptions.AppExceptionNotFound;
 import com.braidsbeautybyangie.sagapatternspringboot.aggregates.aggregates.Constants;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,16 +20,16 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
     private final CreditCardProcessorRemoteService ccpRemoteService;
-    private static final Logger LOGGER = LoggerFactory.getLogger(PaymentServiceImpl.class);
 
     @Override
     public PaymentDTO processPayment(PaymentDTO paymentDTO) {
-        LOGGER.info("Processing payment: {}", paymentDTO);
+        log.info("Processing payment: {}", paymentDTO);
         ccpRemoteService.process(paymentDTO.getPaymentAccountNumber(), paymentDTO.getPaymentTotalPrice());
         PaymentEntity paymentEntity =  PaymentEntity.builder()
                 .paymentAccountNumber(paymentDTO.getPaymentAccountNumber())
@@ -42,18 +42,20 @@ public class PaymentServiceImpl implements PaymentService {
                 .shopOrderId(paymentDTO.getShopOrderId())
                 .build();
         PaymentEntity paymentSaved = paymentRepository.save(paymentEntity);
-        LOGGER.info("Payment processed: {}", paymentSaved);
+        log.info("Payment processed: {}", paymentSaved);
         return paymentMapper.paymentDTO(paymentSaved);
     }
 
     @Override
     public ResponseListPageablePayments listAllPaymentsPageable(int pageNumber, int pageSize, String orderBy, String sortDir) {
-        LOGGER.info("Searching all payments with the following parameters: {}", Constants.parametersForLogger(pageNumber, pageSize, orderBy, sortDir));
+        log.info("Searching all payments with the following parameters: {}", Constants.parametersForLogger(pageNumber, pageSize, orderBy, sortDir));
         Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(orderBy).ascending() : Sort.by(orderBy).descending();
         Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
 
         Page<PaymentEntity> paymentEntityPage = paymentRepository.findAll(pageable);
-
+        if(paymentEntityPage.isEmpty()) {
+            log.info("No payments found");
+        }
         return ResponseListPageablePayments.builder()
                 .payments(paymentEntityPage.getContent().stream().map(paymentMapper::paymentDTO).toList())
                 .pageNumber(paymentEntityPage.getNumber())
@@ -66,9 +68,13 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentDTO findPaymentByShopOrderId(Long shopOrderId) {
-        LOGGER.info("Searching payment with ID: {}", shopOrderId);
-        return paymentRepository.findByShopOrderId(shopOrderId)
-                .map(paymentMapper::paymentDTO)
-                .orElse(null);
+        log.info("Searching payment with ID: {}", shopOrderId);
+        PaymentEntity paymentEntity = paymentRepository.findByShopOrderId(shopOrderId)
+                .orElseThrow(() -> {
+                    log.error("Payment not found");
+                    return new AppExceptionNotFound("Payment not found");
+                });
+        log.info("Payment found: {}", paymentEntity);
+        return paymentMapper.paymentDTO(paymentEntity);
     }
 }

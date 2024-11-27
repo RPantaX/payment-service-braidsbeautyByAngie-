@@ -6,7 +6,7 @@ import com.braidsbeautybyangie.paymentservice.service.creditCard.CreditCardProce
 import com.braidsbeautybyangie.sagapatternspringboot.aggregates.AppExceptions.CreditCardProcessorUnavailableException;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -14,19 +14,20 @@ import java.math.BigInteger;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CreditCardProcessorRemoteServiceImpl implements CreditCardProcessorRemoteService {
     private final RestCreditCardProcessorAdapter restCreditCardProcessorAdapter;
-    private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(CreditCardProcessorRemoteServiceImpl.class);
     @Override
     public void process(BigInteger cardNumber, BigDecimal paymentAmount) {
         try {
+            log.info("Processing credit card with the following number: {}", cardNumber);
             var request = new CreditCardProcessRequest(cardNumber, paymentAmount);
             restCreditCardProcessorAdapter.processCreditCard(request);
         } catch (FeignException e) {
-            LOGGER.error("Error processing credit card with the following number: {}", cardNumber);
+            log.error("Error processing credit card with the following number: {}", cardNumber);
             throw new CreditCardProcessorUnavailableException(e);
         } catch (Exception e) {
-            LOGGER.error("Unexpected error processing credit card with the following number: {}", cardNumber, e);
+            log.error("Unexpected error processing credit card with the following number: {}", cardNumber, e);
             throw new CreditCardProcessorUnavailableException(e);
         }
     }

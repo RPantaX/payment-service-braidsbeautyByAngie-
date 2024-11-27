@@ -8,6 +8,7 @@ import com.braidsbeautybyangie.sagapatternspringboot.aggregates.aggregates.comma
 import com.braidsbeautybyangie.sagapatternspringboot.aggregates.aggregates.events.PaymentFailedEvent;
 import com.braidsbeautybyangie.sagapatternspringboot.aggregates.aggregates.events.PaymentProcessedEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,10 +23,10 @@ import java.math.BigDecimal;
 @Component
 @KafkaListener(topics = "${payments.commands.topic.name}")
 @RequiredArgsConstructor
+@Slf4j
 public class PaymentsCommandsHandler {
 
     private final PaymentService paymentService;
-    private static final Logger logger = LoggerFactory.getLogger(PaymentsCommandsHandler.class);
     private final KafkaTemplate<String, Object> kafkaTemplate;
     @Value("${payments.events.topic.name}")
     private String paymentEventsTopicName;
@@ -42,7 +43,7 @@ public class PaymentsCommandsHandler {
             publishPaymentProcessedEvent(command, paymentDTOSaved, totalPrice);
 
         } catch (CreditCardProcessorUnavailableException e) {
-            logger.error("Error in PaymentsCommandsHandler.handleCommand: {}", e.getMessage());
+            log.error("Error in PaymentsCommandsHandler.handleCommand: {}", e.getMessage());
             publishPaymentFailedEvent(command);
         }
     }
@@ -86,8 +87,14 @@ public class PaymentsCommandsHandler {
                 .isProduct(!command.getProductList().isEmpty())
                 .isService(isService)
                 .build();
+        log.info("PaymentProcessedEvent: {}", paymentProcessedEvent);
+        try {
+            kafkaTemplate.send(paymentEventsTopicName, paymentProcessedEvent);
+            log.info("PaymentProcessedEvent published: {}", paymentProcessedEvent);
+        } catch (Exception e) {
+            log.error("Error in PaymentsCommandsHandler.publishPaymentProcessedEvent: {}", e.getMessage());
+        }
 
-        kafkaTemplate.send(paymentEventsTopicName, paymentProcessedEvent);
     }
 
     private void publishPaymentFailedEvent(ProcessPaymentCommand command) {
@@ -96,8 +103,13 @@ public class PaymentsCommandsHandler {
                 .productList(command.getProductList())
                 .reservationId(command.getReservationCore().getReservationId())
                 .build();
-
-        kafkaTemplate.send(paymentEventsTopicName, paymentFailedEvent);
+        try {
+            log.info("PaymentFailedEvent: {}", paymentFailedEvent);
+            kafkaTemplate.send(paymentEventsTopicName, paymentFailedEvent);
+            log.info("PaymentFailedEvent published: {}", paymentFailedEvent);
+        } catch (Exception e) {
+            log.error("Error in PaymentsCommandsHandler.publishPaymentFailedEvent: {}", e.getMessage());
+        }
     }
 
 }
