@@ -13,7 +13,7 @@ public class SwaggerConfig {
     public OpenAPI customOpenApi(){
         return new OpenAPI()
                 .info(new Info()
-                        .title("APIs of the 'Product Service' for AngieBraidsBeauty Microservice")
+                        .title("APIs of the 'Payment Service' for AngieBraidsBeauty Microservice")
                         .description("This API provides endpoints for managing payments.")
                         .version("v1")
                         .contact(new Contact()

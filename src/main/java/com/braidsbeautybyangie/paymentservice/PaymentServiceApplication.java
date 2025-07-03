@@ -11,7 +11,6 @@ import org.springframework.cloud.openfeign.FeignAutoConfiguration;
 @SpringBootApplication
 @ImportAutoConfiguration({FeignAutoConfiguration.class})
 @EnableFeignClients("com.braidsbeautybyangie.*")
-@OpenAPIDefinition
 @EnableDiscoveryClient
 public class PaymentServiceApplication {
 
