@@ -50,6 +50,9 @@ public class PaymentsCommandsHandler {
 
     private BigDecimal calculateTotalPrice(ProcessPaymentCommand command) {
         BigDecimal totalPriceProducts = calculateProductsTotal(command);
+        if (command.getReservationCore() == null) {
+            return totalPriceProducts;
+        }
         BigDecimal totalPriceServices = command.getReservationCore().getTotalPrice();
         return totalPriceProducts.add(totalPriceServices);
     }
@@ -78,7 +81,12 @@ public class PaymentsCommandsHandler {
     }
 
     private void publishPaymentProcessedEvent(ProcessPaymentCommand command, PaymentDTO paymentDTOSaved, BigDecimal totalPrice) {
-        boolean isService = command.getReservationCore().getReservationId() != null;
+        boolean isService = false;
+        if  (command.getReservationCore() == null) {
+            isService = false;
+        } else {
+            isService = command.getReservationCore().getReservationId() != null;
+        }
 
         PaymentProcessedEvent paymentProcessedEvent = PaymentProcessedEvent.builder()
                 .paymentId(paymentDTOSaved.getPaymentId())
